@@ -16,11 +16,17 @@ const dashboardRoutes = require('./routes/dashboard.routes')
 
 const app = express()
 
-app.use(helmet())
-app.use(cors({
+const corsOptions = {
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
-}))
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+}
+
+app.use(helmet())
+app.options('*', cors(corsOptions))
+app.use(cors(corsOptions))
 app.use(express.json())
 app.use(cookieParser())
 
