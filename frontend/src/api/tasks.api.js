@@ -12,6 +12,12 @@ export const useProjectTasks = (projectId, filters = {}) =>
 export const useMyTasks = () =>
   useQuery({ queryKey: ['myTasks'], queryFn: () => api.get('/tasks/my').then(r => r.data) })
 
+export const useStandupTasks = (isAdmin) =>
+  useQuery({
+    queryKey: ['standupTasks', isAdmin],
+    queryFn: () => api.get(isAdmin ? '/tasks/my?admin=true' : '/tasks/my').then(r => r.data),
+  })
+
 export const useTask = (id) =>
   useQuery({ queryKey: ['task', id], queryFn: () => api.get(`/tasks/${id}`).then(r => r.data), enabled: !!id })
 
@@ -19,7 +25,7 @@ export const useCreateTask = (projectId) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data) => api.post(`/tasks/project/${projectId}`, data).then(r => r.data),
-    onSuccess: () => { qc.invalidateQueries(['tasks', projectId]); toast.success('Task created') },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks', projectId] }); toast.success('Task created') },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   })
 }
@@ -30,15 +36,22 @@ export const useUpdateTask = (projectId) => {
     mutationFn: ({ id, ...data }) => api.patch(`/tasks/${id}`, data).then(r => r.data),
     onMutate: async ({ id, status }) => {
       if (!status) return
-      await qc.cancelQueries(['tasks', projectId])
-      const prev = qc.getQueryData(['tasks', projectId])
-      qc.setQueryData(['tasks', projectId], old =>
-        old?.map(t => t.id === id ? { ...t, status } : t)
+      await qc.cancelQueries({ queryKey: ['tasks', projectId] })
+      // getQueriesData returns [[key, data], ...] — works for prefix matching unlike getQueryData
+      const prev = qc.getQueriesData({ queryKey: ['tasks', projectId] })
+      qc.setQueriesData({ queryKey: ['tasks', projectId] }, (old) =>
+        Array.isArray(old) ? old.map(t => t.id === id ? { ...t, status } : t) : old
       )
       return { prev }
     },
-    onError: (_, __, ctx) => { if (ctx?.prev) qc.setQueryData(['tasks', projectId], ctx.prev) },
-    onSettled: () => { qc.invalidateQueries(['tasks', projectId]); qc.invalidateQueries(['myTasks']) },
+    onError: (_, __, ctx) => {
+      ctx?.prev?.forEach(([key, data]) => qc.setQueryData(key, data))
+    },
+    onSettled: (_, __, variables) => {
+      qc.invalidateQueries({ queryKey: ['tasks', projectId] })
+      qc.invalidateQueries({ queryKey: ['myTasks'] })
+      if (variables?.id) qc.invalidateQueries({ queryKey: ['task', variables.id] })
+    },
   })
 }
 
@@ -46,6 +59,6 @@ export const useDeleteTask = (projectId) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id) => api.delete(`/tasks/${id}`).then(r => r.data),
-    onSuccess: () => { qc.invalidateQueries(['tasks', projectId]); toast.success('Task deleted') },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks', projectId] }); toast.success('Task deleted') },
   })
 }

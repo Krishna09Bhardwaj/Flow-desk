@@ -106,8 +106,15 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
                 ) : <span className="text-xs text-muted-foreground">No due date</span>}
                 {isAdmin && (
                   <input type="date" className="mt-1 h-7 text-xs rounded border border-input bg-background px-2 text-foreground w-full"
+                    min="2020-01-01" max="2099-12-31"
                     defaultValue={task.dueDate ? task.dueDate.slice(0, 10) : ''}
-                    onChange={e => saveField('dueDate', e.target.value || null)} />
+                    onChange={e => {
+                      const val = e.target.value
+                      if (!val) { saveField('dueDate', null); return }
+                      const year = new Date(val).getFullYear()
+                      if (year < 2020 || year > 2099) return
+                      saveField('dueDate', val)
+                    }} />
                 )}
               </div>
               <div>

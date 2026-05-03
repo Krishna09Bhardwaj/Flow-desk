@@ -34,17 +34,15 @@ export default function TopBar({ onMenuClick, title }) {
         </button>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm hover:bg-primary/30 transition-colors">
-              {user?.name?.[0]?.toUpperCase()}
-            </button>
+          <DropdownMenuTrigger className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm hover:bg-primary/30 transition-colors cursor-pointer">
+            {user?.name?.[0]?.toUpperCase()}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <div className="px-3 py-2 border-b border-border">
               <p className="text-sm font-medium text-foreground">{user?.name}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
-            <DropdownMenuItem onClick={logout} className="text-red-500 focus:text-red-500 cursor-pointer">
+            <DropdownMenuItem onClick={logout} className="text-red-500 cursor-pointer">
               <LogOut size={14} className="mr-2" /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

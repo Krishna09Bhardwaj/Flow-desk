@@ -123,9 +123,11 @@ const remove = async (req, res) => {
 
 const myTasks = async (req, res) => {
   try {
+    const adminView = req.user.role === 'ADMIN' && req.query.admin === 'true'
+    const where = adminView ? {} : { assigneeId: req.user.id }
     const tasks = await prisma.task.findMany({
-      where: { assigneeId: req.user.id },
-      include: { project: { select: { id: true, name: true, color: true } }, createdBy: { select: userSelect } },
+      where,
+      include: { project: { select: { id: true, name: true, color: true } }, createdBy: { select: userSelect }, assignee: { select: userSelect } },
       orderBy: { dueDate: 'asc' },
     })
     res.json(tasks)

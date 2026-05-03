@@ -4,9 +4,10 @@ const adminStats = async (req, res) => {
   try {
     const now = new Date()
 
-    const [totalProjects, totalTasks, doneTasks, overdueTasks, tasksByPriority, recentActivity, members] = await Promise.all([
+    const [totalProjects, totalTasks, totalMembers, doneTasks, overdueTasks, tasksByPriority, tasksByStatus, recentActivity, members] = await Promise.all([
       prisma.project.count({ where: { status: 'ACTIVE' } }),
       prisma.task.count(),
+      prisma.user.count({ where: { role: 'MEMBER' } }),
       prisma.task.count({ where: { status: 'DONE' } }),
       prisma.task.findMany({
         where: { dueDate: { lt: now }, status: { not: 'DONE' } },
@@ -15,6 +16,7 @@ const adminStats = async (req, res) => {
         take: 10,
       }),
       prisma.task.groupBy({ by: ['priority'], _count: { id: true } }),
+      prisma.task.groupBy({ by: ['status'], _count: { id: true } }),
       prisma.activityLog.findMany({
         include: { user: { select: { id: true, name: true, avatarUrl: true } } },
         orderBy: { createdAt: 'desc' },
@@ -38,11 +40,13 @@ const adminStats = async (req, res) => {
     res.json({
       totalProjects,
       totalTasks,
+      totalMembers,
       doneTasks,
       completionRate,
       overdueCount: overdueTasks.length,
       overdueTasks,
       tasksByPriority,
+      tasksByStatus,
       recentActivity,
       workload: workload.sort((a, b) => b.openTasks - a.openTasks),
     })

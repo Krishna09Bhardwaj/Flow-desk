@@ -12,24 +12,35 @@ import {
 } from 'recharts'
 
 const PRIORITY_COLORS = { LOW: '#94a3b8', MEDIUM: '#3b82f6', HIGH: '#f97316', URGENT: '#ef4444' }
+const STATUS_COLORS = { TODO: '#94a3b8', IN_PROGRESS: '#3b82f6', IN_REVIEW: '#f59e0b', DONE: '#22c55e' }
+const STATUS_LABELS = { TODO: 'To Do', IN_PROGRESS: 'In Progress', IN_REVIEW: 'In Review', DONE: 'Done' }
 
 function AdminDashboard() {
-  const { data, isLoading } = useAdminDashboard()
+  const { data, isLoading, isError } = useAdminDashboard()
+
   if (isLoading) return <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <CardSkeleton key={i} />)}</div>
-  if (!data) return null
+  if (isError || !data) return (
+    <div className="bg-card border border-border rounded-xl p-8 text-center">
+      <p className="text-muted-foreground text-sm">Could not load dashboard data. Make sure the backend is running.</p>
+    </div>
+  )
 
   const pieData = [
     { name: 'Done', value: data.doneTasks },
     { name: 'Remaining', value: data.totalTasks - data.doneTasks },
   ]
-  const barData = data.tasksByPriority.map(p => ({ name: p.priority, count: p._count.id }))
+  const statusData = (data.tasksByStatus || []).map(s => ({
+    name: STATUS_LABELS[s.status] || s.status,
+    count: s._count.id,
+    status: s.status,
+  }))
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard icon="🗂️" label="Active Projects" value={data.totalProjects} />
+        <StatsCard icon="🗂️" label="Total Projects" value={data.totalProjects} />
         <StatsCard icon="✅" label="Total Tasks" value={data.totalTasks} />
-        <StatsCard icon="📈" label="Completion Rate" value={`${data.completionRate}%`} />
+        <StatsCard icon="👥" label="Total Members" value={data.totalMembers} />
         <StatsCard icon="⚠️" label="Overdue Tasks" value={data.overdueCount} sub="needs attention" />
       </div>
 
@@ -49,17 +60,21 @@ function AdminDashboard() {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-foreground mb-4">Tasks by Priority</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={barData}>
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {barData.map((entry, i) => <Cell key={i} fill={PRIORITY_COLORS[entry.name] || '#7C3AED'} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <h3 className="font-semibold text-foreground mb-4">Tasks by Status</h3>
+          {statusData.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No tasks yet</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={statusData}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  {statusData.map((entry, i) => <Cell key={i} fill={STATUS_COLORS[entry.status] || '#7C3AED'} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -74,7 +89,7 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {data.overdueTasks.length > 0 && (
+      {data.overdueTasks?.length > 0 && (
         <div className="bg-card border border-red-200 dark:border-red-800 rounded-xl p-5">
           <h3 className="font-semibold text-red-600 dark:text-red-400 mb-3">⚠️ Overdue Tasks ({data.overdueCount})</h3>
           <div className="space-y-2">
