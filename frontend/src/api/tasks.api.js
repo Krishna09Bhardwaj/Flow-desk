@@ -55,6 +55,13 @@ export const useUpdateTask = (projectId) => {
   })
 }
 
+export const useSendReminder = () =>
+  useMutation({
+    mutationFn: (taskId) => api.post(`/tasks/${taskId}/remind`).then(r => r.data),
+    onSuccess: () => toast.success('Reminder sent to assignee'),
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to send reminder'),
+  })
+
 export const useDeleteTask = (projectId) => {
   const qc = useQueryClient()
   return useMutation({

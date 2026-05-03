@@ -7,6 +7,8 @@ import { CardSkeleton } from '@/components/shared/SkeletonLoader'
 import CountdownBadge from '@/components/shared/CountdownBadge'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import { Link } from 'react-router-dom'
+import { useNotifications, useMarkOneRead } from '@/api/notifications.api'
+import { BellRing, X } from 'lucide-react'
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
@@ -109,6 +111,31 @@ function AdminDashboard() {
   )
 }
 
+function AdminReminderBanners() {
+  const { data: notifications = [] } = useNotifications()
+  const { mutate: markRead } = useMarkOneRead()
+  const reminders = notifications.filter(n => n.type === 'ADMIN_REMINDER' && !n.isRead)
+  if (reminders.length === 0) return null
+
+  return (
+    <div className="space-y-2">
+      {reminders.map(n => (
+        <div key={n.id} className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl px-4 py-3">
+          <BellRing size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p className="flex-1 text-sm text-amber-900 dark:text-amber-200">{n.message}</p>
+          <button
+            onClick={() => markRead(n.id)}
+            title="Dismiss"
+            className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 shrink-0"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function MemberDashboard() {
   const { data, isLoading } = useMemberDashboard()
   if (isLoading) return <div className="grid grid-cols-2 gap-4">{[...Array(4)].map((_, i) => <CardSkeleton key={i} />)}</div>
@@ -116,6 +143,7 @@ function MemberDashboard() {
 
   return (
     <div className="space-y-6">
+      <AdminReminderBanners />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard icon="📅" label="Due Today" value={data.todayTasks.length} />
         <StatsCard icon="⚠️" label="Overdue" value={data.overdueTasks.length} />

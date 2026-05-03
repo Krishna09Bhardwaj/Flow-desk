@@ -138,4 +138,29 @@ const myTasks = async (req, res) => {
   }
 }
 
-module.exports = { listByProject, create, getOne, update, remove, myTasks }
+const remind = async (req, res) => {
+  try {
+    const task = await prisma.task.findUnique({
+      where: { id: req.params.id },
+      include: { project: { select: { id: true, name: true } } },
+    })
+    if (!task) return res.status(404).json({ message: 'Task not found' })
+    if (!task.assigneeId) return res.status(400).json({ message: 'Task has no assignee' })
+
+    const dueStr = task.dueDate
+      ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'no due date set'
+
+    await createNotification(
+      task.assigneeId,
+      'ADMIN_REMINDER',
+      `Reminder from Admin: "${task.title}" is due ${dueStr}. Head to project "${task.project?.name}" to update your progress.`
+    )
+    await logActivity(req.user.id, 'REMINDER_SENT', 'task', task.id, { title: task.title }, task.projectId, task.id)
+    res.json({ message: 'Reminder sent' })
+  } catch {
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+module.exports = { listByProject, create, getOne, update, remove, myTasks, remind }
