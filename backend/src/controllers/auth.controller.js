@@ -58,15 +58,22 @@ const login = async (req, res) => {
 }
 
 const refresh = async (req, res) => {
+  const token = req.cookies?.refreshToken
+  if (!token) return res.status(401).json({ message: 'No refresh token' })
+
+  let stored
   try {
-    const token = req.cookies?.refreshToken
-    if (!token) return res.status(401).json({ message: 'No refresh token' })
+    stored = await prisma.refreshToken.findUnique({ where: { token } })
+  } catch {
+    // DB temporarily unavailable — return 503 so the frontend does NOT force-logout
+    return res.status(503).json({ message: 'Service temporarily unavailable' })
+  }
 
-    const stored = await prisma.refreshToken.findUnique({ where: { token } })
-    if (!stored || stored.expiresAt < new Date()) {
-      return res.status(401).json({ message: 'Refresh token invalid or expired' })
-    }
+  if (!stored || stored.expiresAt < new Date()) {
+    return res.status(401).json({ message: 'Refresh token invalid or expired' })
+  }
 
+  try {
     const decoded = verifyRefreshToken(token)
     const accessToken = signAccessToken(decoded.userId)
     res.json({ accessToken })

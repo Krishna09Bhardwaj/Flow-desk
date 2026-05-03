@@ -33,11 +33,19 @@ api.interceptors.response.use(
         queue.forEach(({ resolve }) => resolve())
         queue = []
         return api(original)
-      } catch {
-        queue.forEach(({ reject }) => reject(err))
-        queue = []
-        useAuthStore.getState().logout()
-        window.location.href = '/login'
+      } catch (refreshErr) {
+        // Only force-logout when the refresh token is genuinely invalid (401).
+        // Network errors, 502, 503 mean the server is temporarily down — keep the user logged in.
+        const status = refreshErr?.response?.status
+        if (status === 401) {
+          queue.forEach(({ reject }) => reject(refreshErr))
+          queue = []
+          useAuthStore.getState().logout()
+          window.location.href = '/login'
+        } else {
+          queue.forEach(({ reject }) => reject(err))
+          queue = []
+        }
       } finally {
         refreshing = false
       }
