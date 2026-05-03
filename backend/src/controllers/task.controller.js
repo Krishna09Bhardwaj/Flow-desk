@@ -90,7 +90,8 @@ const update = async (req, res) => {
       }
     }
 
-    const { title, description, priority, status, dueDate, assigneeId } = req.body
+    const { title, description, priority, status, assigneeId } = req.body
+    const dueDate = req.body.dueDate === '' ? null : req.body.dueDate
     const prevAssigneeId = task.assigneeId
     const updated = await prisma.task.update({
       where: { id: req.params.id },
