@@ -2,15 +2,21 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import useAuthStore from '@/store/auth.store'
 
+// Must match axios.js — uses VITE_API_URL so production calls hit the backend, not the frontend server.
+const BASE = import.meta.env.VITE_API_URL || '/api'
+
 export const useAuthInit = () => {
   const [loading, setLoading] = useState(true)
   const { setAuth, user } = useAuthStore()
 
   useEffect(() => {
     if (user) { setLoading(false); return }
-    axios.post('/api/auth/refresh', {}, { withCredentials: true })
+    axios.post(`${BASE}/auth/refresh`, {}, { withCredentials: true })
       .then(({ data }) => {
-        axios.get('/api/auth/me', { headers: { Authorization: `Bearer ${data.accessToken}` }, withCredentials: true })
+        axios.get(`${BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${data.accessToken}` },
+          withCredentials: true,
+        })
           .then(({ data: me }) => setAuth(me.user, data.accessToken))
           .catch(() => {})
       })
