@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Bell, X } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Bell, X, Zap } from 'lucide-react'
 import useAuthStore from '@/store/auth.store'
 import { useNotifications } from '@/api/notifications.api'
 import { cn } from '@/lib/utils'
@@ -31,8 +31,9 @@ export default function Sidebar({ open, onClose }) {
       )}>
         <div className="flex items-center justify-between px-5 h-16 border-b border-border">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-xs">F</span>
+            <div className="w-7 h-7 rounded-md flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)' }}>
+              <Zap size={15} className="text-white fill-white" />
             </div>
             <span className="font-semibold text-foreground">FlowDesk</span>
           </div>
