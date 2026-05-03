@@ -36,7 +36,8 @@ const create = async (req, res) => {
     if (req.user.role !== 'ADMIN' && !(await isMemberOf(req.user.id, projectId))) {
       return res.status(403).json({ message: 'Not a project member' })
     }
-    const { title, description, priority, status, dueDate, assigneeId } = req.body
+    const { title, description, priority, status, assigneeId } = req.body
+    const dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null
     const task = await prisma.task.create({
       data: { title, description, priority, status, dueDate, assigneeId, projectId, createdById: req.user.id },
       include: { assignee: { select: userSelect }, createdBy: { select: userSelect } },
@@ -91,7 +92,7 @@ const update = async (req, res) => {
     }
 
     const { title, description, priority, status, assigneeId } = req.body
-    const dueDate = req.body.dueDate === '' ? null : req.body.dueDate
+    const dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null
     const prevAssigneeId = task.assigneeId
     const updated = await prisma.task.update({
       where: { id: req.params.id },
