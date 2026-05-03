@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { useTask, useUpdateTask, useDeleteTask } from '@/api/tasks.api'
 import { useComments, useAddComment, useDeleteComment } from '@/api/comments.api'
-import { useMembers } from '@/api/members.api'
+import { useProject } from '@/api/projects.api'
 import PriorityBadge from '@/components/shared/PriorityBadge'
 import CountdownBadge from '@/components/shared/CountdownBadge'
 import { formatDate } from '@/utils/date.utils'
@@ -20,7 +20,8 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
   const isAdmin = user?.role === 'ADMIN'
   const { data: task } = useTask(taskId)
   const { data: comments = [] } = useComments(taskId)
-  const { data: members = [] } = useMembers()
+  const { data: project } = useProject(projectId)
+  const projectMembers = project?.members?.map(m => m.user) ?? []
   const { mutate: update } = useUpdateTask(projectId)
   const { mutate: deleteTask } = useDeleteTask(projectId)
   const { mutate: addComment, isPending: commenting } = useAddComment(taskId)
@@ -123,7 +124,7 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
                   <select value={task.assigneeId || ''} onChange={e => saveField('assigneeId', e.target.value || null)}
                     className="h-7 text-xs rounded border border-input bg-background px-2 text-foreground w-full">
                     <option value="">Unassigned</option>
-                    {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    {projectMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                 ) : (
                   <span className="text-xs text-foreground">{task.assignee?.name || 'Unassigned'}</span>
