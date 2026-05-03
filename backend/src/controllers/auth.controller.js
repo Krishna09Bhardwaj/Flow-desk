@@ -5,7 +5,8 @@ const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../ut
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  // 'none' required for cross-site cookies in production (frontend and backend on different Railway domains)
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000,
 }
 

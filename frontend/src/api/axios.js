@@ -1,10 +1,13 @@
 import axios from 'axios'
 import useAuthStore from '@/store/auth.store'
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  withCredentials: true,
-})
+const baseURL = import.meta.env.VITE_API_URL || '/api'
+
+const api = axios.create({ baseURL, withCredentials: true })
+
+// Separate client for the refresh call — no interceptors to avoid infinite loops,
+// and uses the same baseURL so it works in both dev (Vite proxy) and production.
+const refreshClient = axios.create({ baseURL, withCredentials: true })
 
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken
@@ -28,7 +31,7 @@ api.interceptors.response.use(
       original._retry = true
       refreshing = true
       try {
-        const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true })
+        const { data } = await refreshClient.post('/auth/refresh', {}, { withCredentials: true })
         useAuthStore.getState().setAuth(useAuthStore.getState().user, data.accessToken)
         queue.forEach(({ resolve }) => resolve())
         queue = []
