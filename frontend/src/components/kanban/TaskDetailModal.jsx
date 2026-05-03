@@ -83,7 +83,7 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Priority</span>
                 {isAdmin ? (
-                  <select value={task.priority} onChange={e => saveField('priority', e.target.value)}
+                  <select key={task.priority} defaultValue={task.priority} onChange={e => saveField('priority', e.target.value)}
                     className="h-7 text-xs rounded border border-input bg-background px-2 text-foreground">
                     {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
@@ -91,7 +91,7 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
               </div>
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Status</span>
-                <select value={task.status}
+                <select key={task.status} defaultValue={task.status}
                   onChange={e => saveField('status', e.target.value)}
                   className="h-7 text-xs rounded border border-input bg-background px-2 text-foreground">
                   {['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
@@ -99,16 +99,17 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
               </div>
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Due Date</span>
-                {task.dueDate ? (
+                {task.dueDate && new Date(task.dueDate).getFullYear() >= 2020 ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-foreground">{formatDate(task.dueDate)}</span>
                     <CountdownBadge dueDate={task.dueDate} />
                   </div>
-                ) : <span className="text-xs text-muted-foreground">No due date</span>}
+                ) : <span className="text-xs text-muted-foreground">{task.dueDate ? 'Invalid date — please reset' : 'No due date'}</span>}
                 {isAdmin && (
                   <input type="date" className="mt-1 h-7 text-xs rounded border border-input bg-background px-2 text-foreground w-full"
                     min="2020-01-01" max="2099-12-31"
-                    defaultValue={task.dueDate ? task.dueDate.slice(0, 10) : ''}
+                    key={task.dueDate}
+                    defaultValue={task.dueDate && new Date(task.dueDate).getFullYear() >= 2020 ? task.dueDate.slice(0, 10) : ''}
                     onChange={e => {
                       const val = e.target.value
                       if (!val) { saveField('dueDate', null); return }
@@ -121,7 +122,7 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Assignee</span>
                 {isAdmin ? (
-                  <select value={task.assigneeId || ''} onChange={e => saveField('assigneeId', e.target.value || null)}
+                  <select key={task.assigneeId || ''} defaultValue={task.assigneeId || ''} onChange={e => saveField('assigneeId', e.target.value || null)}
                     className="h-7 text-xs rounded border border-input bg-background px-2 text-foreground w-full">
                     <option value="">Unassigned</option>
                     {projectMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
