@@ -71,6 +71,10 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
 
   const handleSave = () => {
     if (!form.title.trim()) { toast.error('Title is required'); return }
+    if (form.dueDate) {
+      const year = new Date(form.dueDate).getFullYear()
+      if (year < 2020 || year > 2099) { toast.error('Due date year must be between 2020 and 2099'); return }
+    }
     update(
       {
         id: taskId,
@@ -161,14 +165,7 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
                     className="mt-0.5 h-7 text-xs rounded border border-input bg-background px-2 text-foreground w-full"
                     min="2020-01-01" max="2099-12-31"
                     value={form.dueDate}
-                    onChange={e => {
-                      const val = e.target.value
-                      if (val) {
-                        const year = new Date(val).getFullYear()
-                        if (year < 2020 || year > 2099) return
-                      }
-                      setField('dueDate', val)
-                    }}
+                    onChange={e => setField('dueDate', e.target.value)}
                   />
                 ) : (
                   !task.dueDate ? <span className="text-xs text-muted-foreground">No due date</span> : null
