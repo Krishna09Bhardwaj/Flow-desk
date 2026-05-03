@@ -3,13 +3,13 @@ const { listByProject, create, getOne, update, remove, myTasks } = require('../c
 const { verifyToken } = require('../middleware/auth.middleware')
 const { isAdmin } = require('../middleware/role.middleware')
 const { validate } = require('../middleware/validate.middleware')
-const { taskValidator } = require('../validators/task.validator')
+const { taskCreateValidator, taskUpdateValidator } = require('../validators/task.validator')
 
 router.get('/my', verifyToken, myTasks)
 router.get('/project/:projectId', verifyToken, listByProject)
-router.post('/project/:projectId', verifyToken, taskValidator, validate, create)
+router.post('/project/:projectId', verifyToken, taskCreateValidator, validate, create)
 router.get('/:id', verifyToken, getOne)
-router.patch('/:id', verifyToken, taskValidator, validate, update)
+router.patch('/:id', verifyToken, taskUpdateValidator, validate, update)
 router.delete('/:id', verifyToken, isAdmin, remove)
 
 module.exports = router
