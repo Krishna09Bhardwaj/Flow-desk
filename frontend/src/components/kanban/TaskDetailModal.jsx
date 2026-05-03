@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,9 +11,23 @@ import PriorityBadge from '@/components/shared/PriorityBadge'
 import CountdownBadge from '@/components/shared/CountdownBadge'
 import { formatDate } from '@/utils/date.utils'
 import { suggestPriority } from '@/utils/priority-suggester'
-import { Trash2, Send } from 'lucide-react'
+import { Trash2, Send, Save } from 'lucide-react'
 import useAuthStore from '@/store/auth.store'
 import { format } from 'date-fns'
+import toast from 'react-hot-toast'
+
+const EMPTY_FORM = { title: '', priority: 'MEDIUM', status: 'TODO', dueDate: '', assigneeId: '', description: '' }
+
+function formFromTask(task) {
+  return {
+    title: task.title || '',
+    priority: task.priority || 'MEDIUM',
+    status: task.status || 'TODO',
+    dueDate: task.dueDate && new Date(task.dueDate).getFullYear() >= 2020 ? task.dueDate.slice(0, 10) : '',
+    assigneeId: task.assigneeId || '',
+    description: task.description || '',
+  }
+}
 
 export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
   const user = useAuthStore(s => s.user)
@@ -22,26 +36,61 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
   const { data: comments = [] } = useComments(taskId)
   const { data: project } = useProject(projectId)
   const projectMembers = project?.members?.map(m => m.user) ?? []
-  const { mutate: update } = useUpdateTask(projectId)
+  const { mutate: update, isPending: saving } = useUpdateTask(projectId)
   const { mutate: deleteTask } = useDeleteTask(projectId)
   const { mutate: addComment, isPending: commenting } = useAddComment(taskId)
   const { mutate: deleteComment } = useDeleteComment(taskId)
+
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [isDirty, setIsDirty] = useState(false)
   const [commentText, setCommentText] = useState('')
-  const [editing, setEditing] = useState({})
   const [suggestedPriority, setSuggestedPriority] = useState(null)
+
+  // Reset form whenever the modal opens or a different task is loaded
+  useEffect(() => {
+    if (task && open) {
+      setForm(formFromTask(task))
+      setIsDirty(false)
+      setSuggestedPriority(null)
+    }
+  }, [task?.id, open])
 
   if (!task) return null
 
-  const handleTitleChange = (e) => {
-    const val = e.target.value
-    setEditing(ed => ({ ...ed, title: val }))
-    const sug = suggestPriority(val)
-    setSuggestedPriority(sug && sug !== task.priority ? sug : null)
+  const setField = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }))
+    setIsDirty(true)
   }
 
-  const saveField = (field, value) => {
-    update({ id: taskId, [field]: value })
-    setEditing(ed => { const n = { ...ed }; delete n[field]; return n })
+  const handleTitleChange = (e) => {
+    const val = e.target.value
+    setField('title', val)
+    const sug = suggestPriority(val)
+    setSuggestedPriority(sug && sug !== form.priority ? sug : null)
+  }
+
+  const handleSave = () => {
+    if (!form.title.trim()) { toast.error('Title is required'); return }
+    update(
+      {
+        id: taskId,
+        title: form.title.trim(),
+        priority: form.priority,
+        status: form.status,
+        dueDate: form.dueDate || null,
+        assigneeId: form.assigneeId || null,
+        description: form.description || null,
+      },
+      {
+        onSuccess: () => {
+          setIsDirty(false)
+          toast.success('Task saved')
+        },
+        onError: (err) => {
+          toast.error(err?.response?.data?.message || 'Failed to save')
+        },
+      }
+    )
   }
 
   const submitComment = (e) => {
@@ -58,13 +107,13 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
         </DialogHeader>
         <ScrollArea className="flex-1 pr-2">
           <div className="space-y-5">
+            {/* Title */}
             <div>
               {isAdmin ? (
                 <input
                   className="w-full text-lg font-semibold text-foreground bg-transparent border-b border-transparent focus:border-primary focus:outline-none pb-1"
-                  defaultValue={task.title}
+                  value={form.title}
                   onChange={handleTitleChange}
-                  onBlur={(e) => editing.title !== undefined && saveField('title', e.target.value)}
                 />
               ) : (
                 <h2 className="text-lg font-semibold text-foreground">{task.title}</h2>
@@ -72,18 +121,19 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
               {suggestedPriority && (
                 <div className="mt-2 flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-sm">
                   <span className="text-red-600 dark:text-red-400">⚡ We detected this might be URGENT.</span>
-                  <button onClick={() => { saveField('priority', 'URGENT'); setSuggestedPriority(null) }}
+                  <button onClick={() => { setField('priority', 'URGENT'); setSuggestedPriority(null) }}
                     className="text-red-600 dark:text-red-400 font-medium underline text-xs">Set it?</button>
                   <button onClick={() => setSuggestedPriority(null)} className="ml-auto text-muted-foreground text-xs">Dismiss</button>
                 </div>
               )}
             </div>
 
+            {/* Fields grid */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Priority</span>
                 {isAdmin ? (
-                  <select key={task.priority} defaultValue={task.priority} onChange={e => saveField('priority', e.target.value)}
+                  <select value={form.priority} onChange={e => setField('priority', e.target.value)}
                     className="h-7 text-xs rounded border border-input bg-background px-2 text-foreground">
                     {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
@@ -91,38 +141,43 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
               </div>
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Status</span>
-                <select key={task.status} defaultValue={task.status}
-                  onChange={e => saveField('status', e.target.value)}
+                <select value={form.status} onChange={e => setField('status', e.target.value)}
                   className="h-7 text-xs rounded border border-input bg-background px-2 text-foreground">
-                  {['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                  {['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'].map(s => (
+                    <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Due Date</span>
-                {task.dueDate && new Date(task.dueDate).getFullYear() >= 2020 ? (
-                  <div className="flex items-center gap-2">
+                {task.dueDate && new Date(task.dueDate).getFullYear() >= 2020 && !isDirty ? (
+                  <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs text-foreground">{formatDate(task.dueDate)}</span>
                     <CountdownBadge dueDate={task.dueDate} />
                   </div>
-                ) : <span className="text-xs text-muted-foreground">{task.dueDate ? 'Invalid date — please reset' : 'No due date'}</span>}
-                {isAdmin && (
-                  <input type="date" className="mt-1 h-7 text-xs rounded border border-input bg-background px-2 text-foreground w-full"
+                ) : null}
+                {isAdmin ? (
+                  <input type="date"
+                    className="mt-0.5 h-7 text-xs rounded border border-input bg-background px-2 text-foreground w-full"
                     min="2020-01-01" max="2099-12-31"
-                    key={task.dueDate}
-                    defaultValue={task.dueDate && new Date(task.dueDate).getFullYear() >= 2020 ? task.dueDate.slice(0, 10) : ''}
+                    value={form.dueDate}
                     onChange={e => {
                       const val = e.target.value
-                      if (!val) { saveField('dueDate', null); return }
-                      const year = new Date(val).getFullYear()
-                      if (year < 2020 || year > 2099) return
-                      saveField('dueDate', val)
-                    }} />
+                      if (val) {
+                        const year = new Date(val).getFullYear()
+                        if (year < 2020 || year > 2099) return
+                      }
+                      setField('dueDate', val)
+                    }}
+                  />
+                ) : (
+                  !task.dueDate ? <span className="text-xs text-muted-foreground">No due date</span> : null
                 )}
               </div>
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Assignee</span>
                 {isAdmin ? (
-                  <select key={task.assigneeId || ''} defaultValue={task.assigneeId || ''} onChange={e => saveField('assigneeId', e.target.value || null)}
+                  <select value={form.assigneeId} onChange={e => setField('assigneeId', e.target.value)}
                     className="h-7 text-xs rounded border border-input bg-background px-2 text-foreground w-full">
                     <option value="">Unassigned</option>
                     {projectMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -133,13 +188,18 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
               </div>
             </div>
 
+            {/* Description */}
             {(isAdmin || task.description) && (
               <div>
                 <span className="text-muted-foreground text-xs block mb-1">Description</span>
                 {isAdmin ? (
-                  <textarea className="w-full text-sm text-foreground bg-muted/40 border border-input rounded-md p-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-                    rows={3} defaultValue={task.description || ''}
-                    onBlur={e => saveField('description', e.target.value)} placeholder="Add description…" />
+                  <textarea
+                    className="w-full text-sm text-foreground bg-muted/40 border border-input rounded-md p-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                    rows={3}
+                    value={form.description}
+                    onChange={e => setField('description', e.target.value)}
+                    placeholder="Add description…"
+                  />
                 ) : (
                   <p className="text-sm text-foreground">{task.description || '—'}</p>
                 )}
@@ -148,6 +208,7 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
 
             <Separator />
 
+            {/* Comments */}
             <div>
               <h4 className="text-sm font-medium text-foreground mb-3">Comments ({comments.length})</h4>
               <div className="space-y-3 mb-4">
@@ -182,13 +243,23 @@ export default function TaskDetailModal({ taskId, projectId, open, onClose }) {
           </div>
         </ScrollArea>
 
-        {isAdmin && (
-          <div className="pt-3 border-t border-border">
+        {/* Footer: Delete (admin) + Save */}
+        <div className="pt-3 border-t border-border flex items-center justify-between">
+          {isAdmin ? (
             <Button variant="destructive" size="sm" onClick={() => { deleteTask(taskId); onClose() }}>
               <Trash2 size={14} className="mr-1.5" /> Delete Task
             </Button>
-          </div>
-        )}
+          ) : <div />}
+          <Button
+            size="sm"
+            className="bg-primary hover:bg-primary/90"
+            onClick={handleSave}
+            disabled={saving || !isDirty}
+          >
+            <Save size={14} className="mr-1.5" />
+            {saving ? 'Saving…' : isDirty ? 'Save Changes' : 'Saved'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   )
