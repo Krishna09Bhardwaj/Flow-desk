@@ -38,6 +38,10 @@ const create = async (req, res) => {
     }
     const { title, description, priority, status, assigneeId } = req.body
     const dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null
+    // Validate that assignee is a project member if provided
+    if (assigneeId && !(await isMemberOf(assigneeId, projectId))) {
+      return res.status(400).json({ message: 'Assignee must be a project member' })
+    }
     const task = await prisma.task.create({
       data: { title, description, priority, status, dueDate, assigneeId, projectId, createdById: req.user.id },
       include: { assignee: { select: userSelect }, createdBy: { select: userSelect } },
@@ -94,6 +98,10 @@ const update = async (req, res) => {
     const { title, description, priority, status, assigneeId } = req.body
     const dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null
     const prevAssigneeId = task.assigneeId
+    // Validate that new assignee is a project member if provided and changed
+    if (assigneeId && assigneeId !== prevAssigneeId && !(await isMemberOf(assigneeId, task.projectId))) {
+      return res.status(400).json({ message: 'Assignee must be a project member' })
+    }
     const updated = await prisma.task.update({
       where: { id: req.params.id },
       data: { title, description, priority, status, dueDate, assigneeId },

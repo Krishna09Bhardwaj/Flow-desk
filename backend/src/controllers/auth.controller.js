@@ -22,8 +22,10 @@ const signup = async (req, res) => {
       select: { id: true, name: true, email: true, role: true, avatarUrl: true, createdAt: true },
     })
 
-    const accessToken = signAccessToken(user.id)
+    const accessToken = signAccessToken(user.id, user.role)
     const refreshToken = signRefreshToken(user.id)
+    // Clean up old refresh tokens for this user, then create a new one
+    await prisma.refreshToken.deleteMany({ where: { userId: user.id } })
     await prisma.refreshToken.create({
       data: { token: refreshToken, userId: user.id, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
     })
@@ -44,8 +46,10 @@ const login = async (req, res) => {
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) return res.status(401).json({ message: 'Invalid credentials' })
 
-    const accessToken = signAccessToken(user.id)
+    const accessToken = signAccessToken(user.id, user.role)
     const refreshToken = signRefreshToken(user.id)
+    // Clean up old refresh tokens for this user, then create a new one
+    await prisma.refreshToken.deleteMany({ where: { userId: user.id } })
     await prisma.refreshToken.create({
       data: { token: refreshToken, userId: user.id, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
     })
@@ -76,7 +80,13 @@ const refresh = async (req, res) => {
 
   try {
     const decoded = verifyRefreshToken(token)
-    const accessToken = signAccessToken(decoded.userId)
+    // Fetch fresh user data to include current role in new access token
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, role: true },
+    })
+    if (!user) return res.status(401).json({ message: 'User not found' })
+    const accessToken = signAccessToken(user.id, user.role)
     res.json({ accessToken })
   } catch {
     res.status(401).json({ message: 'Invalid refresh token' })
@@ -94,8 +104,17 @@ const logout = async (req, res) => {
   }
 }
 
-const me = (req, res) => {
-  res.json({ user: req.user })
+const me = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, name: true, email: true, role: true, avatarUrl: true, createdAt: true },
+    })
+    if (!user) return res.status(401).json({ message: 'User not found' })
+    res.json({ user })
+  } catch {
+    res.status(500).json({ message: 'Server error' })
+  }
 }
 
 module.exports = { signup, login, refresh, logout, me }

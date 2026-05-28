@@ -1,7 +1,6 @@
 const { verifyAccessToken } = require('../utils/jwt.utils')
-const prisma = require('../config/prisma')
 
-const verifyToken = async (req, res, next) => {
+const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No token provided' })
@@ -9,12 +8,13 @@ const verifyToken = async (req, res, next) => {
   const token = authHeader.split(' ')[1]
   try {
     const decoded = verifyAccessToken(token)
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: { id: true, name: true, email: true, role: true, avatarUrl: true }
-    })
-    if (!user) return res.status(401).json({ message: 'User not found' })
-    req.user = user
+    // Trust JWT payload — avoids a DB query on every request.
+    // The isAdmin middleware separately verifies the current role from DB for sensitive operations.
+    req.user = {
+      id: decoded.userId,
+      role: decoded.role,
+      // These fields are populated lazily when needed (e.g., by the `/auth/me` endpoint)
+    }
     next()
   } catch {
     return res.status(401).json({ message: 'Invalid or expired token' })
