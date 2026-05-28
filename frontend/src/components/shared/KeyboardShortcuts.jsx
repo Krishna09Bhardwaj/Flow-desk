@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const SHORTCUTS = [
@@ -11,7 +11,7 @@ const SHORTCUTS = [
 export default function KeyboardShortcuts() {
   const [open, setOpen] = useState(false)
 
-  useState(() => {
+  useEffect(() => {
     const handler = (e) => {
       const tag = e.target.tagName
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return

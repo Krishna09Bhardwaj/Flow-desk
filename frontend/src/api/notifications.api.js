@@ -8,7 +8,7 @@ export const useMarkOneRead = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id) => api.patch(`/notifications/${id}/read`).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries(['notifications']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 }
 
@@ -16,6 +16,6 @@ export const useMarkAllRead = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => api.patch('/notifications/read-all').then(r => r.data),
-    onSuccess: () => qc.invalidateQueries(['notifications']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 }

@@ -10,7 +10,12 @@ export const useAuthInit = () => {
   const { setAuth, user } = useAuthStore()
 
   useEffect(() => {
-    if (user) { setLoading(false); return }
+    // Skip the auth refresh on guest pages (login, signup) to avoid unnecessary 401 console errors
+    const path = window.location.pathname
+    const isGuestRoute = path === '/login' || path === '/signup'
+
+    if (user || isGuestRoute) { setLoading(false); return }
+
     axios.post(`${BASE}/auth/refresh`, {}, { withCredentials: true })
       .then(({ data }) => {
         axios.get(`${BASE}/auth/me`, {

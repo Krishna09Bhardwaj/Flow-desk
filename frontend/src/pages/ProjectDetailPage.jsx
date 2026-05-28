@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Filter, UserPlus, Archive } from 'lucide-react'
+import { ArrowLeft, Plus, UserPlus, Archive } from 'lucide-react'
 import { useProject, useArchiveProject, useAddMember, useRemoveMember } from '@/api/projects.api'
 import { useProjectTasks, useCreateTask } from '@/api/tasks.api'
 import { useMembers } from '@/api/members.api'

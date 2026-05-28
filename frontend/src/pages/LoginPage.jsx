@@ -36,12 +36,12 @@ export default function LoginPage() {
         <form onSubmit={submit} className="space-y-4 bg-card border border-border rounded-xl p-6 shadow-sm">
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="you@company.com" value={form.email}
+            <Input id="email" type="email" placeholder="you@company.com" autoComplete="email" value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" value={form.password}
+            <Input id="password" type="password" placeholder="••••••••" autoComplete="current-password" value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
           </div>
           <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isPending}>

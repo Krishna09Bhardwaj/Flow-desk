@@ -9,7 +9,7 @@ export const useAddComment = (taskId) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (content) => api.post(`/comments/task/${taskId}`, { content }).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries(['comments', taskId]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', taskId] }),
     onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   })
 }
@@ -18,6 +18,6 @@ export const useDeleteComment = (taskId) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id) => api.delete(`/comments/${id}`).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries(['comments', taskId]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', taskId] }),
   })
 }

@@ -29,20 +29,20 @@ export default function SignupPage() {
 
         <form onSubmit={submit} className="space-y-4 bg-card border border-border rounded-xl p-6 shadow-sm">
           <div className="space-y-1.5">
-            <Label>Full Name</Label>
-            <Input placeholder="Jane Smith" value={form.name} onChange={set('name')} required />
+            <Label htmlFor="signup-name">Full Name</Label>
+            <Input id="signup-name" name="name" autoComplete="name" placeholder="Jane Smith" value={form.name} onChange={set('name')} required />
           </div>
           <div className="space-y-1.5">
-            <Label>Email</Label>
-            <Input type="email" placeholder="you@company.com" value={form.email} onChange={set('email')} required />
+            <Label htmlFor="signup-email">Email</Label>
+            <Input id="signup-email" name="email" type="email" autoComplete="email" placeholder="you@company.com" value={form.email} onChange={set('email')} required />
           </div>
           <div className="space-y-1.5">
-            <Label>Password</Label>
-            <Input type="password" placeholder="Min. 6 characters" value={form.password} onChange={set('password')} required />
+            <Label htmlFor="signup-password">Password</Label>
+            <Input id="signup-password" name="password" type="password" autoComplete="new-password" placeholder="Min. 6 characters" value={form.password} onChange={set('password')} required />
           </div>
           <div className="space-y-1.5">
-            <Label>Role</Label>
-            <select value={form.role} onChange={set('role')}
+            <Label htmlFor="signup-role">Role</Label>
+            <select id="signup-role" name="role" value={form.role} onChange={set('role')}
               className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
               <option value="MEMBER">Member</option>
               <option value="ADMIN">Admin</option>
